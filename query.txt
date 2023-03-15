@@ -1,0 +1,174 @@
+//Create Database
+create database EXERCISE_DB;
+
+//Create Table
+create or replace table customers(
+  customer_id int,
+  first_name varchar,
+  last_name varchar,
+  email varchar,
+  age int,
+  city varchar)
+
+
+-- Load data
+copy into customers
+  from s3://snowflake-assignments-mc/gettingstarted/customers.csv
+  file_format = (
+    type = csv 
+    field_delimiter = ',' 
+    skip_header = 1);
+
+SELECT * FROM customers;
+
+-- create stage object
+CREATE OR REPLACE STAGE EXERCISE_DB.public.aws_stage
+    url='s3://snowflake-assignments-mc/loadingdata';
+
+    -- List files in stage
+LIST @EXERCISE_DB.public.aws_stage;
+
+-- Load the data 
+COPY INTO EXERCISE_DB.PUBLIC.CUSTOMERS
+    FROM @aws_stage
+    file_format= (type = csv field_delimiter=';' skip_header=1)
+
+    -- create stage object
+CREATE OR REPLACE STAGE EXERCISE_DB.public.aws_stage
+    url='s3://snowflake-assignments-mc/fileformat';
+
+    -- List files in stage
+LIST @EXERCISE_DB.public.aws_stage;
+
+-- create file format object
+CREATE OR REPLACE FILE FORMAT EXERCISE_DB.public.aws_fileformat
+TYPE = CSV
+FIELD_DELIMITER='|'
+SKIP_HEADER=1;
+
+-- Load the data 
+COPY INTO EXERCISE_DB.PUBLIC.CUSTOMERS
+    FROM @aws_stage
+      file_format= (FORMAT_NAME=EXERCISE_DB.public.aws_fileformat)
+
+      -- Alternative
+COPY INTO EXERCISE_DB.PUBLIC.CUSTOMERS
+    FROM @aws_stage
+      file_format= EXERCISE_DB.public.aws_fileformat
+
+
+      -- create table
+create or replace table employees(
+  customer_id int,
+  first_name varchar(50),
+  last_name varchar(50),
+  email varchar(50),
+  age int,
+  city varchar(50));
+ 
+ 
+-- create file format object
+CREATE OR REPLACE FILE FORMAT EXERCISE_DB.public.aws_fileformat
+TYPE = CSV
+FIELD_DELIMITER=','
+SKIP_HEADER=1;
+
+
+-- create stage object
+CREATE OR REPLACE STAGE EXERCISE_DB.public.aws_stage
+    url='s3://snowflake-assignments-mc/copyoptions/example1';
+    
+
+-- List files in stage
+LIST @EXERCISE_DB.public.aws_stage;      
+
+
+-- Use validation mode
+COPY INTO EXERCISE_DB.PUBLIC.EMPLOYEES
+    FROM @aws_stage
+      file_format= EXERCISE_DB.public.aws_fileformat
+      VALIDATION_MODE = RETURN_ERRORS;
+ 
+
+-- Use ON_ERROR
+COPY INTO EXERCISE_DB.PUBLIC.EMPLOYEES
+    FROM @aws_stage
+      file_format= EXERCISE_DB.public.aws_fileformat
+      ON_ERROR = CONTINUE;    
+
+
+-- Create table
+create or replace table employees(
+  customer_id int,
+  first_name varchar(50),
+  last_name varchar(50),
+  email varchar(50),
+  age int,
+  department varchar(50));
+
+  -- create stage object
+CREATE OR REPLACE STAGE EXERCISE_DB.public.aws_stage
+    url='s3://snowflake-assignments-mc/copyoptions/example2';
+
+-- List files in stage
+LIST @EXERCISE_DB.public.aws_stage;
+
+-- create file format object
+CREATE OR REPLACE FILE FORMAT EXERCISE_DB.public.aws_fileformat
+TYPE = CSV
+FIELD_DELIMITER=','
+SKIP_HEADER=1;
+
+-- Use validation mode
+COPY INTO EXERCISE_DB.PUBLIC.EMPLOYEES
+    FROM @aws_stage
+      file_format= EXERCISE_DB.public.aws_fileformat
+      VALIDATION_MODE = RETURN_ERRORS;
+
+-- Use TRUNCATECOLUMNS
+
+COPY INTO EXERCISE_DB.PUBLIC.EMPLOYEES
+    FROM @aws_stage
+      file_format= EXERCISE_DB.public.aws_fileformat
+      TRUNCATECOLUMNS = TRUE; 
+
+
+USE EXERCISE_DB;
+
+ // First step: Load Raw JSON
+CREATE OR REPLACE stage JSONSTAGE
+     url='s3://snowflake-assignments-mc/unstructureddata/';
+
+CREATE OR REPLACE file format JSONFORMAT
+    TYPE = JSON;
+    
+    
+CREATE OR REPLACE table JSON_RAW (
+    raw_file variant);
+    
+COPY INTO JSON_RAW
+    FROM @JSONSTAGE
+    file_format= JSONFORMAT
+    
+SELECT * FROM JSON_RAW;
+
+// Selecting attribute/column
+SELECT 
+$1:first_name::STRING,
+$1:last_name::STRING,
+$1:Skills[0]::STRING,
+$1:Skills[1]::STRING
+FROM JSON_RAW;
+
+// Copy data in table
+CREATE TABLE SKILLS AS
+SELECT 
+$1:first_name::STRING as first_name,
+$1:last_name::STRING as last_name,
+$1:Skills[0]::STRING as Skill_1,
+$1:Skills[1]::STRING as Skill_2
+FROM JSON_RAW;
+
+// Query from table
+SELECT * FROM SKILLS
+WHERE FIRST_NAME='Florina';

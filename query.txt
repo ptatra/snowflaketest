@@ -1,4 +1,4 @@
-//Create Database
+//Create Databaseri0o\
 create database EXERCISE_DB;
 
 //Create Table
